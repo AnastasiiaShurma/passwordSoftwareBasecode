@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Secure Hidden Entry List</title>
+  <style>
+    body { font-family: Arial, sans-serif; margin: 20px; }
+    .entry { margin-bottom: 10px; }
+    .entry-title { display: inline-block; margin-right: 10px; font-weight: bold; }
+    button { margin-left: 5px; }
+  </style>
+</head>
+<body>
+  <h2>Enter a Title and Hidden Message</h2>
+
+  <div id="entrySection">
+    <input type="text" id="titleInput" placeholder="Enter title (visible)" />
+    <br><br>
+    <textarea id="messageInput" rows="4" cols="40" placeholder="Enter secret message (hidden later)"></textarea>
+    <br>
+    <button onclick="saveEntry()">Save & Hide</button>
+  </div>
+
+  <h3>Saved Entries</h3>
+  <div id="savedList"></div>
+
+  <script>
+    let hiddenEntries = [];
+
+    // Load entries from localStorage
+    window.onload = function() {
+      const stored = localStorage.getItem("hiddenEntries");
+      if (stored) {
+        hiddenEntries = JSON.parse(stored);
+        renderEntries();
+      }
+    };
+
+    function saveEntry() {
+      const title = document.getElementById("titleInput").value.trim();
+      const message = document.getElementById("messageInput").value.trim();
+
+      if (!title || !message) {
+        alert("Please enter both a title and a message.");
+        return;
+      }
+
+      hiddenEntries.push({ title, message });
+      updateStorage();
+      renderEntries();
+
+      // Clear inputs
+      document.getElementById("titleInput").value = "";
+      document.getElementById("messageInput").value = "";
+    }
+
+    function copyToClipboard(text) {
+      const temp = document.createElement("textarea");
+      temp.value = text;
+      document.body.appendChild(temp);
+      temp.select();
+      temp.setSelectionRange(0, 99999);
+      try {
+        document.execCommand("copy");
+      } catch (err) {
+        console.error("Copy failed", err);
+      }
+      document.body.removeChild(temp);
+    }
+
+    function deleteEntry(index) {
+      hiddenEntries.splice(index, 1);
+      updateStorage();
+      renderEntries();
+    }
+
+    function moveEntry(index, direction) {
+      const newIndex = index + direction;
+      if (newIndex < 0 || newIndex >= hiddenEntries.length) return;
+
+      // Swap entries
+      [hiddenEntries[index], hiddenEntries[newIndex]] = [hiddenEntries[newIndex], hiddenEntries[index]];
+      updateStorage();
+      renderEntries();
+    }
+
+    function updateStorage() {
+      localStorage.setItem("hiddenEntries", JSON.stringify(hiddenEntries));
+    }
+
+    function renderEntries() {
+      const savedList = document.getElementById("savedList");
+      savedList.innerHTML = "";
+
+      hiddenEntries.forEach((entry, index) => {
+        const entryDiv = document.createElement("div");
+        entryDiv.className = "entry";
+
+        const titleSpan = document.createElement("span");
+        titleSpan.className = "entry-title";
+        titleSpan.textContent = entry.title;
+
+        const copyBtn = document.createElement("button");
+        copyBtn.textContent = "Copy";
+        copyBtn.onclick = () => copyToClipboard(entry.message);
+
+        const deleteBtn = document.createElement("button");
+        deleteBtn.textContent = "Delete";
+        deleteBtn.onclick = () => deleteEntry(index);
+
+        const upBtn = document.createElement("button");
+        upBtn.textContent = "↑";
+        upBtn.onclick = () => moveEntry(index, -1);
+
+        const downBtn = document.createElement("button");
+        downBtn.textContent = "↓";
+        downBtn.onclick = () => moveEntry(index, 1);
+
+        entryDiv.appendChild(titleSpan);
+        entryDiv.appendChild(copyBtn);
+        entryDiv.appendChild(deleteBtn);
+        entryDiv.appendChild(upBtn);
+        entryDiv.appendChild(downBtn);
+
+        savedList.appendChild(entryDiv);
+      });
+    }
+  </script>
+</body>
+</html>
